@@ -1,15 +1,13 @@
 #include <iostream>
-#include "HttpServer.h"
+#include "HttpServer.hpp"
 
-using namespace std;
 
-#pragma comment(lib, "ws2_32.lib") // link with winsock lib
 
 int main()
 {
     HttpServer server(5000);
     if(!server.init()){
-        cout<<"Initialization failed"<<endl;
+        std::cout<<"Initialization failed"<<std::endl;
         return 1;
     }
     server.run();

@@ -1,11 +1,8 @@
-#include "HttpServer.h"
-#include "./utils/RequestParser.cpp"
-#include "./utils/ResponseBuilder.cpp"
-#include "./utils/FileManager.cpp"
-#include "./utils/ResponseSender.cpp"
+#include "HttpServer.hpp"
+#include "HttpRequestParser.hpp"
+#include "StaticFileHandler.hpp"
 #include <iostream>
 #include <thread>
-using namespace std;
 
 HttpServer::HttpServer(int port)
 {
@@ -23,23 +20,23 @@ bool HttpServer::init()
     // intialize winsock using wsastartup()
     if (initialize())
     {
-        cout << "winsock initialization failed: " << WSAGetLastError() << endl;
+        std::cout << "winsock initialization failed: " << WSAGetLastError() << std::endl;
         WSACleanup();
         return false;
     }
     else
-        cout << "winsock initialized" << endl;
+        std::cout << "winsock initialized" << std::endl;
 
     // create a socket
     this->serverSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     if (serverSocket == INVALID_SOCKET)
     {
-        cout << "socket creation failed: " << WSAGetLastError() << endl;
+        std::cout << "socket creation failed: " << WSAGetLastError() << std::endl;
         WSACleanup();
         return false;
     }
     else
-        cout << "socket created" << endl;
+        std::cout << "socket created" << std::endl;
 
     // bind the socket
     sockaddr_in serverAdd;
@@ -49,25 +46,25 @@ bool HttpServer::init()
 
     if (bind(serverSocket, (sockaddr *)&serverAdd, sizeof(serverAdd)) == SOCKET_ERROR)
     {
-        cout << "bind failed: " << WSAGetLastError() << endl;
+        std::cout << "bind failed: " << WSAGetLastError() << std::endl;
         closesocket(serverSocket);
         WSACleanup();
         return false;
     }
     else
-        cout << "bind successful" << endl;
+        std::cout << "bind successful" << std::endl;
 
     // listen for the connections
     if (listen(serverSocket, SOMAXCONN) == SOCKET_ERROR)
     {
-        cout << "listening failed: " << WSAGetLastError() << endl;
+        std::cout << "listening failed: " << WSAGetLastError() << std::endl;
         closesocket(serverSocket);
         WSACleanup();
         return false;
     }
     else
     {
-        cout << "listening on Port: " << port << endl;
+        std::cout << "listening on Port: " << port << std::endl;
     }
     return true;
 }
@@ -80,10 +77,10 @@ void HttpServer::run()
         SOCKET client = accept(serverSocket, nullptr, nullptr);
         if (client == INVALID_SOCKET)
         {
-            cout << "accept failed: " << WSAGetLastError() << endl;
+            std::cout << "accept failed: " << WSAGetLastError() << std::endl;
             break;
         }
-        thread t(&handleClient,this, client);
+        std::thread t(&handleClient,this, client);
         t.detach();
     }
 
@@ -104,58 +101,60 @@ void HttpServer::handleClient(SOCKET client)
     }
     else if (bytesrecv == SOCKET_ERROR)
     {
-        cout << "recv failed" << WSAGetLastError() << endl;
+        std::cout << "recv failed" << WSAGetLastError() << std::endl;
         closesocket(client);
         return;
     }
-    string msg(buff, bytesrecv);
+    std::string msg(buff, bytesrecv);
+    std::cout << "=====================\n";
+    std::cout << msg << '\n';
+    std::cout << "=====================\n";
 
-    // parsing the http request
-    httpRequest req = parseRequest(msg);
-    if (req.method.empty() ||
-        req.path.empty() ||
-        req.version.empty())
+    // parsing, handling the http request and sending the http response
+    HttpRequest req;
+    HttpResponse res;
+    if (!parser.parse(msg, req))
     {
+        res.statusCode = 400;
+        res.statusMessage = "Bad Request";
+        res.body = "<h1>400 Bad Request</h1>";
+        res.headers["Content-Type"] = "text/html";
+        res.headers["Content-Length"] = std::to_string(res.body.size());
+
+        std::string response = res.serialize();
+        send(client, response.c_str(), response.size(), 0);
+
         closesocket(client);
         return;
     }
 
-    // reading the file content and saving it to fileData struct
-    fileData file;
-    if (req.path == "/")
-    {
-        file = readFile("../public/index.html");
-    }
-    else
-    {
-        file = readFile("../public" + req.path);
-    }
+    fileHandler.handleRequest(req, res);
 
-    // build the response to send
-    string response;
-    httpResponse responseStatus;
-    responseStatus.status = "404";
-    responseStatus.statusText = "Not Found";
-    responseStatus.contentType = file.type;
-    responseStatus.body = "<h1>404 Not Found!</h1>";
-    if (file.success)
-    {
-        responseStatus.status = "200";
-        responseStatus.statusText = "OK";
-        responseStatus.contentType = file.type;
-        responseStatus.body = file.content;
-    }
-    response = buildResponse(responseStatus);
-
-    // send the http response
-    int bytesSent = sendResponse(client,response);
-    if (bytesSent == SOCKET_ERROR)
-    {
-        cout << "Send failed" << endl;
-        closesocket(client);
-        return;
-    }
+    std::string response = res.serialize();
+    sendAll(client, response);
 
     // close the socket
     closesocket(client);
+};
+
+bool HttpServer::sendAll(SOCKET client, const std::string &response)
+{
+    size_t totalSent = 0;
+    size_t totalSize = response.size();
+
+    while (totalSent < totalSize)
+    {
+        int bytesSent = send(
+            client,
+            response.c_str() + totalSent,
+            static_cast<int>(totalSize - totalSent),
+            0);
+
+        if (bytesSent == SOCKET_ERROR)
+            return false;
+
+        totalSent += bytesSent;
+    }
+
+    return true;
 }
