@@ -1,51 +1,58 @@
-# HTTP Server in C++
+# C++ HTTP Server
 
-A lightweight multithreaded HTTP server built from scratch in C++ using the Windows Winsock API. The server handles HTTP GET requests, serves static files along with standard HTTP response, and demonstrates the fundamentals of socket programming and the HTTP protocol.
+A multithreaded HTTP server built from scratch in C++ using the Winsock API. The server handles HTTP requests, serves static files along with standard HTTP response, designed to understand networking, HTTP Protocol, socket programming and concurrent client handling.
 
 ## Features
 
-- Multithreaded client handling
-- HTTP request parsing
-- Static file serving
-- MIME type detection
-- Binary file support (images, favicon, etc.)
-- Custom Error handling
-- Built using Winsock APIs
+* TCP socket communication using Winsock
+* HTTP request parsing
+* Request line, headers, query parameters, and body parsing
+* Static file serving
+* MIME type detection
+* Multithreaded client handling
+* HTTP response generation
 
 ## Tech Stack
 
-- C++
-- Winsock2
-- Multithreading
-- File I/O
-- HTTP/1.1
+* C++17
+* Winsock2
+* TCP/IP
+* HTTP/1.1
+* Multithreading
 
 ## Project Structure
 
-```
-public/
-src/
-README.md
+```text
+HTTP-Server/
+├── src/
+├── include/
+├── public/
+├── main.cpp
+├── Makefile
+├── .gitignore
+└── README.md
 ```
 
-## How to Run
+## Build & Run
 
-1. Clone the repository.
-2. Build the project using a C++ compiler with Winsock support.
-3. Run the executable.
-4. Open your browser and visit:
-
+```bash
+make
 ```
+
+```bash
+./server
+```
+
+Then open:
+
+```text
 http://localhost:5000
 ```
 
-## Learning Objectives
+## Key Concepts
 
-This project was built to understand:
+**TCP Sockets • HTTP • Request Parsing • Multithreading • File I/O • C++17**
 
-- TCP socket programming
-- HTTP request/response lifecycle
-- Multithreaded server design
-- Static file serving
-- MIME type handling
-- Binary file transmission
+## Author
+
+**Vaibhav Kashyap**
