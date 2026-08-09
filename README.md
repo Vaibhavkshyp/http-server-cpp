@@ -36,6 +36,14 @@ HTTP-Server/
 ## Build & Run
 
 ```bash
+git clone https://github.com/Vaibhavkshyp/http-server-cpp.git
+```
+
+```bash
+cd http-server-cpp
+```
+
+```bash
 make
 ```
 
